@@ -1,12 +1,12 @@
 #include <Arduino.h>
 #include <math.h>
 
-
 #define BLYNK_PRINT Serial
 #define BLYNK_TEMPLATE_ID "TMPL3ulSDD24e"
 #define BLYNK_TEMPLATE_NAME "Test1"
 #define BLYNK_AUTH_TOKEN "6Ef2CzHO7Xm8C6woP4AZ5KHVb9ubc7qI"
 #include <BlynkSimpleEsp32.h>
+
 #define ZMPT101B_PIN 34  // GPIO pin for reading the ZMPT101B sensor
 
 const unsigned long updateInterval = 2000; // Send data every 2 seconds
@@ -20,9 +20,8 @@ const int adcMaxValue = 4095; // Maximum ADC value
 
 // Calibration constants
 const float knownRMSVoltage = 220.0; // Known RMS voltage
-const float calibrationRMSVoltage = 3114.10; // RMS voltage measured with known 220V
-//const float scalingFactor = knownRMSVoltage / (calibrationRMSVoltage / (voltageReference / adcMaxValue) * sqrt(2)); 
-const float scalingFactor = 100; // Scaling factor for 220V
+const float calibrationRMSVoltage = 1.2; // RMS voltage measured with known 220V
+const float scalingFactor = 70; // Scaling factor for 220V
 
 void setup() {
   Serial.begin(115200);
@@ -33,18 +32,14 @@ void setup() {
 float calculateRMS() {
   float sumOfSquares = 0.0;
   int validCount = 0;
-  
-  int maxValue = readings[0];
-  int minValue = readings[0];
+
   
   for (int i = 0; i < numReadings; ++i) {
     int value = readings[i];
-    if (value > maxValue) maxValue = value;
-    if (value < minValue) minValue = value;
-    if (value > 2000) { // Filter out erroneous values
-      sumOfSquares += pow(value - offsetValue, 2);
-      validCount++;
-    }
+
+    // For AC, use the offset to adjust for zero crossing
+    sumOfSquares += pow(value - offsetValue, 2);
+    validCount++;
   }
   
   float rmsVoltage = validCount > 0 ? sqrt(sumOfSquares / validCount) * (voltageReference / adcMaxValue) : 0;
@@ -67,7 +62,7 @@ void loop() {
     float rmsVoltage = calculateRMS();
     float acVoltage = calculateACVoltage(rmsVoltage);
     
-
+    /* Print results to serial monitor
     Serial.print("RMS Voltage: ");
     Serial.println(rmsVoltage);
     Serial.print("Peak Voltage: ");
@@ -76,8 +71,9 @@ void loop() {
     Serial.println(2 * rmsVoltage * sqrt(2));
     Serial.print("Actual AC Voltage (220V scaled): ");
     Serial.println(acVoltage);
-    
-    Blynk.virtualWrite(V4, acVoltage);  // Send the voltage to Blynk
+    */
+    // Send the voltage to Blynk
+    Blynk.virtualWrite(V4, acVoltage);  
     
     lastPrintTime = currentTime;
   }
